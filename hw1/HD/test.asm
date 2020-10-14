@@ -33,6 +33,8 @@ section .data
     middle3 : times 5 db 0
     ; ==== MUL ====
     tmp_mul_res : times 100 dw 0
+    middle4 : times 3 dw 0
+    mul_tmp_val : dw 0
 
 section .text
 global _start
@@ -51,7 +53,11 @@ _start:
     call ADD_Number
     mov eax, add_res
     call PrintNumberByChar
+    call PrintSpace
+    mov eax, 0
+    call PrintNumberLF
     call MUL_Number
+    call PrintTmpMulNumber
     call Quit
 
 ; ======= ADD =====
@@ -128,55 +134,59 @@ push edx
 push ecx
 push ebx
 push eax
-; for (int i = 0; i < a_len; i++)
-;     for (int j = 0; j < b_len; j++)
-;         mul_res[99 - i - j] += a_num[99 - i] * b_num[99 - j]
+; for (int i = 0; i < a_len; i++, a--)
+;     for (int j = 0; j < b_len; j++, b--)
+;         mul_res[99 - i - j] += *a * *b
     mov ecx, 0
-    mov ch, 49  ; 外层计数器
-    mov cl, 49  ; 内层计数器
-    mov esi, a_num
+    ; mov ch, 0  外层计数器
+    ; mov cl, 0  内层计数器
+
+    mov esi, a_num  ; 外部数，esi指向a的尾部
     add esi, 99
-    mov edi, b_num
-    add edi, 99
-    mov edx, mul_res    ; edx是尾部地址，这里记得减地址要*2，因为是word
-    add edx, 99 * 2
 
     MUL_Number_Out:
-        dec ch
-        cmp ch, 0
-        je MUL_Number_Fin
+        mov edi, b_num
+        add edi, 99     ; 内部数，edi指向b的尾部
+        mov cl, 0
         MUL_Number_In:
-            dec cl
-            cmp cl, 0
-            je MUL_Number_Out
-
-            ; eax放了乘法的结果
+            ; tmp_val = a[99-i] * b[99-j]
             mov eax, 0
+            mov al, byte[esi]
             mov ebx, 0
-            push edx
-                mov edx, 0
-                mov dl, ch
-                mov al, byte[esi - edx]
-                mov edx, 0
-                mov dl, cl
-                mov bl, byte[esi - edx]
-                imul eax, ebx
+            mov bl, byte[edi]
+            imul eax, ebx                    ; 此时eax存放了tmp_val值
+            push esi
+            push edi
+                mov esi, eax                    ; 将乘积放在了esi里
+                ; t = (99 -i -j) * 2
+                mov eax, 0
+                mov al, cl
+                mov ebx, 0
+                mov bl, ch
+                add eax, ebx
+                mov edi, 99
+                sub edi, eax
+                imul edi, 2                  ; 此时edi放的是 (99 - i - j) * 2, 地址要*2因为是word
+                ; res[t/2] += tmp_val
+                mov edx, tmp_mul_res        ; tmp_mul_res的起始地址
+                add edx, edi                ; 此时edx指向的是要加值的地方
+                mov eax, 0
+                mov ax, word[edx]
+                add eax, esi
+                mov word[edx], ax           ; FIXME: edx前一位会受到这一步影响，从0跳成1048576 1024^2
 
-                mov edx, 0
-                add dl, cl
-                add dl, ch
-                imul edx, 2
-                mov ebx, edx
-            pop edx
-            mov word[edx - ebx * 2], ex
-
-            mov ebx, 0
-            add bl, cl
-            add bl, ch
-            mul ebx, 2
-            mov [edx - 2*ebx], ax
-            jmp MUL_Number_In
-    MUL_Number_Fin:
+            pop edi
+            pop esi
+        MUL_Number_In_Fin:
+            inc cl
+            dec edi
+            cmp cl, 49
+            jne MUL_Number_In
+    MUL_Number_Out_Fin:
+        inc ch
+        dec esi
+        cmp ch, 49
+        jne MUL_Number_Out
 pop eax
 pop ebx
 pop ecx
@@ -184,6 +194,29 @@ pop edx
 pop esi
 pop edi
 ret
+
+PrintTmpMulNumber:
+push edx
+push ecx
+push ebx
+push eax
+    mov ebx, tmp_mul_res
+    mov ecx, 100
+    PrintTmpMulNumberLoop:
+        cmp ecx, 0
+        je PrintTmpMulNumberFin
+        mov eax, 0
+        mov ax, word[ebx]
+        call Iprint
+        call PrintSpace
+        dec ecx
+        add ebx, 2
+        jmp PrintTmpMulNumberLoop
+PrintTmpMulNumberFin:
+pop eax
+pop ebx
+pop ecx
+pop edx
 
 
 ; ======= READER =====
@@ -446,23 +479,22 @@ Iprint:
     push edx
     push esi
     mov ecx, 0  ; count of how many bytes we need to print in the end
-divideLoop:
-    inc ecx
-    mov edx, 0
-    mov esi, 10
-    idiv esi
-    add edx, 48
-    push edx
-    cmp eax, 0
-    jnz divideLoop
-printLoop:
-    dec ecx
-    mov eax, esp
-    call Sprint
-    pop eax
-    cmp ecx, 0
-    jnz printLoop
-
+    divideLoop:
+        inc ecx
+        mov edx, 0
+        mov esi, 10
+        idiv esi
+        add edx, 48
+        push edx
+        cmp eax, 0
+        jnz divideLoop
+    printLoop:
+        dec ecx
+        mov eax, esp
+        call Sprint
+        pop eax
+        cmp ecx, 0
+        jnz printLoop
     pop esi
     pop edx
     pop ecx
