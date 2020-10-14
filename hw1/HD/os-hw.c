@@ -81,6 +81,7 @@ int main() {
 }
 
 void getNumberLength() {
+    // finish
     len_num_print = 0;
     for (int i = 0; i < 100; i++) {
         if (number_print[i] != 0) {
