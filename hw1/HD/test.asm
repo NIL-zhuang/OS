@@ -34,7 +34,7 @@ section .data
     ; ==== MUL ====
     tmp_mul_res : times 100 dw 0
     middle4 : times 3 dw 0
-    mul_tmp_val : dw 0
+    mul_res : times 100 db 0
 
 section .text
 global _start
@@ -54,10 +54,14 @@ _start:
     mov eax, add_res
     call PrintNumberByChar
     call PrintSpace
-    mov eax, 0
-    call PrintNumberLF
+    mov eax, 10
+    call PrintChar
     call MUL_Number
-    call PrintTmpMulNumber
+    ; call PrintTmpMulNumber
+    mov eax, mul_res
+    call PrintNumberByChar
+    mov eax, 10
+    call PrintChar
     call Quit
 
 ; ======= ADD =====
@@ -128,95 +132,121 @@ ADD_Number:
     ret
 ; ======= MUL =====
 MUL_Number:
-push edi
-push esi
-push edx
-push ecx
-push ebx
-push eax
-; for (int i = 0; i < a_len; i++, a--)
-;     for (int j = 0; j < b_len; j++, b--)
-;         mul_res[99 - i - j] += *a * *b
-    mov ecx, 0
-    ; mov ch, 0  外层计数器
-    ; mov cl, 0  内层计数器
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+    push eax
+    ; for (int i = 0; i < a_len; i++, a--)
+    ;     for (int j = 0; j < b_len; j++, b--)
+    ;         mul_res[99 - i - j] += *a * *b
+        mov ecx, 0
+        ; mov ch, 0  外层计数器
+        ; mov cl, 0  内层计数器
 
-    mov esi, a_num  ; 外部数，esi指向a的尾部
-    add esi, 99
+        mov esi, a_num  ; 外部数，esi指向a的尾部
+        add esi, 99
 
-    MUL_Number_Out:
-        mov edi, b_num
-        add edi, 99     ; 内部数，edi指向b的尾部
-        mov cl, 0
-        MUL_Number_In:
-            ; tmp_val = a[99-i] * b[99-j]
-            mov eax, 0
-            mov al, byte[esi]
-            mov ebx, 0
-            mov bl, byte[edi]
-            imul eax, ebx                    ; 此时eax存放了tmp_val值
-            push esi
-            push edi
-                mov esi, eax                    ; 将乘积放在了esi里
-                ; t = (99 -i -j) * 2
+        MUL_Number_Out:
+            mov edi, b_num
+            add edi, 99     ; 内部数，edi指向b的尾部
+            mov cl, 0
+            MUL_Number_In:
+                ; tmp_val = a[99-i] * b[99-j]
                 mov eax, 0
-                mov al, cl
+                mov al, byte[esi]
                 mov ebx, 0
-                mov bl, ch
-                add eax, ebx
-                mov edi, 99
-                sub edi, eax
-                imul edi, 2                  ; 此时edi放的是 (99 - i - j) * 2, 地址要*2因为是word
-                ; res[t/2] += tmp_val
-                mov edx, tmp_mul_res        ; tmp_mul_res的起始地址
-                add edx, edi                ; 此时edx指向的是要加值的地方
-                mov eax, 0
-                mov ax, word[edx]
-                add eax, esi
-                mov word[edx], ax           ; FIXME: edx前一位会受到这一步影响，从0跳成1048576 1024^2
+                mov bl, byte[edi]
+                imul eax, ebx                    ; 此时eax存放了tmp_val值
+                push esi
+                push edi
+                    mov esi, eax                    ; 将乘积放在了esi里
+                    ; t = (99 -i -j) * 2
+                    mov eax, 0
+                    mov al, cl
+                    mov ebx, 0
+                    mov bl, ch
+                    add eax, ebx
+                    mov edi, 99
+                    sub edi, eax
+                    imul edi, 2                  ; 此时edi放的是 (99 - i - j) * 2, 地址要*2因为是word
+                    ; res[t/2] += tmp_val
+                    mov edx, tmp_mul_res        ; tmp_mul_res的起始地址
+                    add edx, edi                ; 此时edx指向的是要加值的地方
+                    mov eax, 0
+                    mov ax, word[edx]
+                    add eax, esi
+                    mov word[edx], ax
 
-            pop edi
-            pop esi
-        MUL_Number_In_Fin:
-            inc cl
-            dec edi
-            cmp cl, 49
-            jne MUL_Number_In
-    MUL_Number_Out_Fin:
-        inc ch
-        dec esi
-        cmp ch, 49
-        jne MUL_Number_Out
-pop eax
-pop ebx
-pop ecx
-pop edx
-pop esi
-pop edi
-ret
+                pop edi
+                pop esi
+            MUL_Number_In_Fin:
+                inc cl
+                dec edi
+                cmp cl, 49
+                jne MUL_Number_In
+        MUL_Number_Out_Fin:
+            inc ch
+            dec esi
+            cmp ch, 49
+            jne MUL_Number_Out
+
+        MUL_Number_Add:
+            ; 暂时乘积存放在tmp_mul_res以字形势存放，现在要把他放到mul_res里
+            mov esi, tmp_mul_res
+            add esi, 99*2       ; esi指向tmp_res的根地址
+            mov ecx, 100        ; ecx 计数
+            mov edi, mul_res
+            add edi, 99         ; edi指向mul_res的根地址
+            mov ebx, 0          ; ebx作为进位的carry
+            MUL_Number_Add_Loop:
+                cmp ecx, 0
+                je MUL_Number_Fin
+                    mov eax, 0
+                    mov edx, 0
+                    mov ax, word[esi]
+                    add eax, ebx        ; eax = tmp_res[i] + carry
+                    mov ebx, 10
+                    div ebx             ; 进位放在eax里，余数放在edx里
+                    mov ebx, eax        ; eax是商，放在ebx里
+                    mov byte[edi], dl   ; dl放的是余数
+                dec ecx
+                dec edi
+                sub esi, 2
+                jmp MUL_Number_Add_Loop
+    MUL_Number_Fin:
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+    pop edi
+    ret
 
 PrintTmpMulNumber:
-push edx
-push ecx
-push ebx
-push eax
-    mov ebx, tmp_mul_res
-    mov ecx, 100
-    PrintTmpMulNumberLoop:
-        cmp ecx, 0
-        je PrintTmpMulNumberFin
-        mov eax, 0
-        mov ax, word[ebx]
-        call Iprint
-        call PrintSpace
-        dec ecx
-        add ebx, 2
-        jmp PrintTmpMulNumberLoop
-PrintTmpMulNumberFin:
-pop eax
-pop ebx
-pop ecx
-pop edx
+    push edx
+    push ecx
+    push ebx
+    push eax
+        mov ebx, tmp_mul_res
+        mov ecx, 100
+        PrintTmpMulNumberLoop:
+            cmp ecx, 0
+            je PrintTmpMulNumberFin
+            mov eax, 0
+            mov ax, word[ebx]
+            call Iprint
+            call PrintSpace
+            dec ecx
+            add ebx, 2
+            jmp PrintTmpMulNumberLoop
+    PrintTmpMulNumberFin:
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    ret
 
 
 ; ======= READER =====
