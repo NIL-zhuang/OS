@@ -27,6 +27,7 @@ section .data
     sign_print : db 0
     len_num_print :db 0
     ; ==== ADD ====
+    bigger_ab : db 0        ; 如果a_num大于b_num，就置为0，否则置为1
     middle2 : times 5 db 0
     add_res : times 100 db 0
     add_sign : db 0
@@ -56,25 +57,17 @@ _start:
     call ReadNumberB
     call FormatNumebrA
     call FormatNumberB
-    ; 加法
-    ; call ADD_Number
-    ; mov eax, add_res
-    ; call PrintNumberByChar
-    ; 减法
-    mov eax, a_num
-    mov ebx, b_num
-    call Sub_Number
-    mov eax, sub_res
-    call PrintNumberByChar
+
+    call ADD_Helper
+
     mov eax, 10
     call PrintChar
-    call MUL_Number
 
+    call MUL_Number
     ; 乘法
     mov eax, 0
     mov al, byte[mul_sign]
     mov byte[sign_print], al
-
     mov eax, mul_res
     call PrintNumberByChar
     ; 打印一个换行
@@ -82,7 +75,103 @@ _start:
     call PrintChar
     call Quit
 
-; ======= ADD =====
+; ======= ADD OR SUB=====
+ADD_Helper:
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+    push eax
+    mov ah, byte[a_sign]
+    mov al, byte[b_sign]
+    cmp al, ah
+    jne ADD_Helper_Min
+    ADD_Helper_Add:
+        ; a和b的符号相同
+        mov al, byte[a_sign]
+        mov byte[sign_print], al
+        call ADD_Number
+        mov eax, add_res
+        call PrintNumberByChar
+        jmp ADD_Helper_Fin
+    ADD_Helper_Min:
+        ; a和b的符号不同，那就把绝对值更大的数作为减数，另一个做被减数
+        call Cmp_Greater
+        mov eax, 0
+        mov al, byte[bigger_ab]
+        cmp al, 0
+        jne ADD_Helper_Min_Rev
+        ; a_num>=b_num
+            mov eax, a_num
+            mov ebx, b_num
+            mov cl, byte[a_sign]
+            jmp ADD_Helper_Min_Do
+        ADD_Helper_Min_Rev:
+        ; a_num < b_num
+            mov eax, b_num
+            mov ebx, a_num
+            mov cl, byte[b_sign]
+        ADD_Helper_Min_Do:
+            mov byte[sign_print], cl
+            call Sub_Number
+            mov eax, sub_res
+            call PrintNumberByChar
+    ADD_Helper_Fin:
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+    pop edi
+    ret
+
+Cmp_Greater:
+    ; FIXME: 无法判定到a比b大
+    ; 比较a和b，如果a>=b，那就把bigger_ab设为0
+    ; 默认是0，所以只要遇到a<b，就把他设成1，然后结束
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+    push eax
+    mov esi, a_num  ; esi指向a头部
+    mov edi, b_num  ; edi指向b头部
+    mov cl, 0     ; 计数器
+    ; bigger_ab = 0
+    ; while(++cl!=101)
+    ;   if(a[cl]>=b[cl]) continue
+    ;   bigger_ab=1;
+    Cmp_Greater_Loop:
+        inc esi
+        inc edi
+        inc cl
+        cmp cl, 100
+        jg Cmp_Greater_Fin
+        mov eax, 0
+        mov edx, 0
+        mov al, byte[esi]   ; ah = a[cl]
+        mov dl, byte[edi]   ; al = b[cl]
+        cmp eax, edx          ; if(ah > al)
+        je Cmp_Greater_Loop
+        jg Cmp_Greater_A
+        jl Cmp_Greater_B
+        Cmp_Greater_A:
+            mov ebx, 0
+            mov byte[bigger_ab], bl
+            jmp Cmp_Greater_Fin
+        Cmp_Greater_B:
+            mov ebx, 1
+            mov byte[bigger_ab], bl
+    Cmp_Greater_Fin:
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+    pop edi
+    ret
 ADD_Number:
     push esi
     push edx
@@ -151,12 +240,12 @@ ADD_Number:
 
 Sub_Number:
     ; 将eax存放被减数的地址，ebx存放减数的地址
-push edi
-push esi
-push edx
-push ecx
-push ebx
-push eax
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+    push eax
     mov esi, eax
     mov edi, ebx
     mov edx, sub_res
@@ -193,13 +282,13 @@ push eax
         dec edi
         jmp Sub_Number_Loop
     Sub_Number_Fin:
-pop eax
-pop ebx
-pop ecx
-pop edx
-pop esi
-pop edi
-ret
+    pop eax
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+    pop edi
+    ret
 ; ======= MUL =====
 MUL_Number:
     push edi
@@ -473,16 +562,22 @@ PrintNumberByChar:
     ; 将首字母放到eax后调用PrintNumberByChar
     ; 将数字的首地址存放在eax寄存器中
     ; 打印一个数字
+    push edx
+    push eax
     call GetNumberLength
-    mov edx, [len_num_print]
-    cmp edx, 0
+    mov edx, 0
+    mov dl, byte[len_num_print]
+    cmp dl, 0
     jnz PrintNumberByCharNotZero
-    mov eax, 0
-    call PrintNumber
-    ret
+        mov eax, 0
+        call PrintNumber
+        jmp PrintNumberByCharFin
     PrintNumberByCharNotZero:
         call PrintSign
         call PrintNumberList
+    PrintNumberByCharFin:
+        pop eax
+        pop edx
         ret
 
 PrintSign:
@@ -504,12 +599,16 @@ PrintNumberList:
     ; 这是我们现在要用的打印数字的函数
     ; 用于printNumberByChar里，打印完符号位之后打印整个数字
     ; 其中eax存放的还是首地址
+    push edx
     push ecx
     push ebx
     push eax
     mov ebx, eax    ; ebx放数字首地址
-    mov ecx, 100
-    sub ecx, [len_num_print]    ; ecx放要打印数字的起始地址
+    mov ecx, 0
+    mov cl, 100
+    mov edx, 0
+    mov dl, byte[len_num_print]
+    sub cl, dl    ; ecx放要打印数字的起始地址
     PrintNumberListLoop:
         cmp ecx, 100
         je PrintNumberListRet
@@ -521,6 +620,7 @@ PrintNumberList:
         pop eax
         pop ebx
         pop ecx
+        pop edx
         ret
 
 
@@ -530,18 +630,23 @@ GetNumberLength:
     push ecx
     push ebx
     push eax
-    mov ecx, 100
+    push edx
+    mov ecx, 0
+    mov cl, 100
     mov ebx, eax    ; ebx是数字的首地址
     GetLengthLoop:
-        cmp byte[ebx], 0 ;如果当前位置不是0，那么就获得了长度
+        mov edx, 0
+        mov dl, byte[ebx]
+        cmp dl, 0 ;如果当前位置不是0，那么就获得了长度
         jnz finishGetLen
         inc ebx             ; len--, *p++
-        dec ecx
-        cmp ecx, 0    ; 如果长度变为0，那也结束运行
+        dec cl
+        cmp cl, 0    ; 如果长度变为0，那也结束运行
         jz finishGetLen
-    jne GetLengthLoop
+        jmp GetLengthLoop
     finishGetLen:
     mov byte[len_num_print], cl
+    pop edx
     pop eax
     pop ebx
     pop ecx
