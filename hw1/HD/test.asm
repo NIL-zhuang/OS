@@ -1,6 +1,7 @@
 section .data
 
 ; 要打印数字就用PrintNumberByChar
+; 用middle来避免某些奇怪的长度不匹配复写现象，虽然应该是消除了
     ; ==== strings
     usrMsg : db "Please input x and y :", 0ah, 0h
     lenUsrMsg : equ $ - usrMsg
@@ -30,6 +31,10 @@ section .data
     add_res : times 100 db 0
     add_sign : db 0
 
+    middle5 : times 5 db 0
+    sub_res : times 100 db 0
+    sub_sign : db 0
+
     middle3 : times 5 db 0
     ; ==== MUL ====
     tmp_mul_res : times 100 dw 0
@@ -52,10 +57,15 @@ _start:
     call FormatNumebrA
     call FormatNumberB
     ; 加法
-    call ADD_Number
-    mov eax, add_res
+    ; call ADD_Number
+    ; mov eax, add_res
+    ; call PrintNumberByChar
+    ; 减法
+    mov eax, a_num
+    mov ebx, b_num
+    call Sub_Number
+    mov eax, sub_res
     call PrintNumberByChar
-    call PrintSpace
     mov eax, 10
     call PrintChar
     call MUL_Number
@@ -138,6 +148,58 @@ ADD_Number:
     pop edx
     pop esi
     ret
+
+Sub_Number:
+    ; 将eax存放被减数的地址，ebx存放减数的地址
+push edi
+push esi
+push edx
+push ecx
+push ebx
+push eax
+    mov esi, eax
+    mov edi, ebx
+    mov edx, sub_res
+    add esi, 99
+    add edi, 99     ; esi被减数尾地址，edi减数尾地址
+    add edx, 99     ; edx指向减法结果的尾地址
+    mov cl, 100     ; cl 计数器
+    mov ch, 0       ; ch 作为借位的carry位。借位不是对被减数-1，而是对减数+1，规避连续0的影响
+    Sub_Number_Loop:
+        cmp cl, 0
+        je Sub_Number_Fin
+        mov ah, byte[esi]
+        mov al, byte[edi]
+        add al, ch          ; ah存被减数，al存减数
+        ; al = al + carry
+        ; if(ah>=al) ch = 0, ah = ah - al
+        ;       else ch = 1, ah = ah+10 - al
+        cmp ah, al
+        jl Sub_Number_Greater
+            ; ah >= al 不用借位
+            mov ch, 0
+            sub ah, al
+        jmp Sub_Number_Write
+        Sub_Number_Greater:
+            ; ah < al 要借位
+            mov ch, 1
+            add ah, 10
+            sub ah, al
+        Sub_Number_Write:
+            mov byte[edx], ah
+        dec edx
+        dec cl
+        dec esi
+        dec edi
+        jmp Sub_Number_Loop
+    Sub_Number_Fin:
+pop eax
+pop ebx
+pop ecx
+pop edx
+pop esi
+pop edi
+ret
 ; ======= MUL =====
 MUL_Number:
     push edi
