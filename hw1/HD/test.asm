@@ -35,6 +35,7 @@ section .data
     tmp_mul_res : times 100 dw 0
     middle4 : times 3 dw 0
     mul_res : times 100 db 0
+    mul_sign : db 0
 
 section .text
 global _start
@@ -50,6 +51,7 @@ _start:
     call ReadNumberB
     call FormatNumebrA
     call FormatNumberB
+    ; 加法
     call ADD_Number
     mov eax, add_res
     call PrintNumberByChar
@@ -57,9 +59,15 @@ _start:
     mov eax, 10
     call PrintChar
     call MUL_Number
-    ; call PrintTmpMulNumber
+
+    ; 乘法
+    mov eax, 0
+    mov al, byte[mul_sign]
+    mov byte[sign_print], al
+
     mov eax, mul_res
     call PrintNumberByChar
+    ; 打印一个换行
     mov eax, 10
     call PrintChar
     call Quit
@@ -138,6 +146,16 @@ MUL_Number:
     push ecx
     push ebx
     push eax
+
+    ; 处理符号
+    mov al, byte[a_sign]
+    mov ah, byte[b_sign]
+    cmp al, ah
+    je MUL_Number_Start
+    mov al, 1
+    mov byte[mul_sign], al
+
+    MUL_Number_Start:
     ; for (int i = 0; i < a_len; i++, a--)
     ;     for (int j = 0; j < b_len; j++, b--)
     ;         mul_res[99 - i - j] += *a * *b
@@ -253,7 +271,7 @@ PrintTmpMulNumber:
 FormatNumebrA:
     push eax
     mov al, byte[a_len]
-    mov [format_len], al
+    mov byte[format_len], al
     mov eax, a_num
     call FormatNumber
     pop eax
@@ -261,7 +279,7 @@ FormatNumebrA:
 FormatNumberB:
     push eax
     mov al, byte[b_len]
-    mov [format_len], al
+    mov byte[format_len], al
     mov eax, b_num
     call FormatNumber
     pop eax
@@ -284,8 +302,8 @@ FormatNumber:
     FormatBegin:
         cmp ecx, 0
         jz FormatAddZero
-        mov edx,[ebx]
-        mov [eax], edx
+        mov dl,byte[ebx]
+        mov byte[eax], dl
         dec ebx
         dec eax
         dec ecx
@@ -298,7 +316,7 @@ FormatNumber:
         FormatAddZeroLoop:
             cmp cl, 0
             jz FormatFinish
-            mov [eax], ch
+            mov byte[eax], ch
             dec cl
             inc eax
             jmp FormatAddZeroLoop
@@ -315,9 +333,9 @@ ReadNumberA:
     mov eax, a_num
     call ReadNumber
     mov al, byte[read_sign]
-    mov [a_sign], al
-    mov al, [read_len]
-    mov [a_len], al
+    mov byte[a_sign], al
+    mov al, byte[read_len]
+    mov byte[a_len], al
     pop eax
     ret
 
@@ -326,9 +344,9 @@ ReadNumberB:
     mov eax, b_num
     call ReadNumber
     mov al, byte[read_sign]
-    mov [b_sign], al
-    mov al, [read_len]
-    mov [b_len], al
+    mov byte[b_sign], al
+    mov al, byte[read_len]
+    mov byte[b_len], al
     pop eax
     ret
 
@@ -343,9 +361,9 @@ ReadNumber:
 
     ; 初始化read的变量
     mov bl, 0
-    mov [read_buffer], bl
-    mov [read_len], bl
-    mov [read_sign], bl
+    mov byte[read_buffer], bl
+    mov byte[read_len], bl
+    mov byte[read_sign], bl
 
     mov esi, eax    ; 用esi来存放首地址
     ReadChar:
@@ -366,11 +384,11 @@ ReadNumber:
         jne NotNegativeNumber
             ; 遇到负号
             mov eax, 1
-            mov [read_sign], eax
+            mov byte[read_sign], al
             jmp ReadChar
         NotNegativeNumber:
             sub cl, 48
-            mov [esi], cl
+            mov byte[esi], cl
             inc esi
             inc byte[read_len]
             jmp ReadChar
@@ -407,7 +425,8 @@ PrintNumberByChar:
 
 PrintSign:
     push eax
-    mov ebx, [sign_print]
+    push ebx
+    mov bl, byte[sign_print]
     ; mov eax, ebx
     ; call IprintLF
     cmp bl, 0   ; notice: 这里用的是bl而不是ebx，因为sign_print前一个值是10，合到ebx里正好是1280+sign
@@ -415,6 +434,7 @@ PrintSign:
         mov eax, '-'
         call PrintChar
     PrintSignRet:
+        pop ebx
         pop eax
         ret
 
@@ -459,7 +479,7 @@ GetNumberLength:
         jz finishGetLen
     jne GetLengthLoop
     finishGetLen:
-    mov [len_num_print], ecx
+    mov byte[len_num_print], cl
     pop eax
     pop ebx
     pop ecx
