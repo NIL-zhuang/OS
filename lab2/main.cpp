@@ -3,8 +3,6 @@
 #include <sstream>
 #include <string>
 using namespace std;
-// xxd -u -a -g 1 -c 16 -s +0x2600 -l 512 a.img
-
 struct Command {
     // only cat and ls
     string operand;
@@ -13,28 +11,28 @@ struct Command {
 };
 
 struct File {
-    string name;         // ÎÄ¼şÃû       /etc/bin/hello
-    string simple_Name;  // ¼òµ¥µÄÎÄ¼şÃû  hello
-    int attribute;       // ÊôĞÔ     0ÊÇÎÄ¼ş¼Ğ£¬1ÊÇÎÄ¼ş
-    int start_cluster;   // Ê×´ØºÅ
-    int size;            // ÎÄ¼ş´óĞ¡
-    int depth;           // ÎÄ¼şËùÔÚÉî¶È
+    string name;         // æ–‡ä»¶å       /etc/bin/hello
+    string simple_Name;  // ç®€å•çš„æ–‡ä»¶å  hello
+    int attribute;       // å±æ€§     0æ˜¯æ–‡ä»¶å¤¹ï¼Œ1æ˜¯æ–‡ä»¶
+    int start_cluster;   // é¦–ç°‡å·
+    int size;            // æ–‡ä»¶å¤§å°
+    int depth;           // æ–‡ä»¶æ‰€åœ¨æ·±åº¦
 };
 
 struct DirEntry {
-    char DIR_Name[8];            // ÎÄ¼şÃû
-    char DIR_Attr[3];            // À©Õ¹Ãû
+    char DIR_Name[8];            // æ–‡ä»¶å
+    char DIR_Attr[3];            // æ‰©å±•å
     char attribute;              // 0x10 dir, 0x20 file
-    char remain[10];             // 10¸ö±£ÁôÎ»
-    char DIR_WrtTime[2];         // ×îºóÒ»´ÎĞ´ÈëÊ±¼ä
-    char DIR_WrtDate[2];         // ×îºóÒ»´ÎĞ´ÈëÈÕÆÚ
-    unsigned short DIR_FstClus;  // ¿ªÊ¼´ØºÅ 2byte
-    unsigned int DIR_FileSize;   // ÎÄ¼ş´óĞ¡ 4byte
+    char remain[10];             // 10ä¸ªä¿ç•™ä½
+    char DIR_WrtTime[2];         // æœ€åä¸€æ¬¡å†™å…¥æ—¶é—´
+    char DIR_WrtDate[2];         // æœ€åä¸€æ¬¡å†™å…¥æ—¥æœŸ
+    unsigned short DIR_FstClus;  // å¼€å§‹ç°‡å· 2byte
+    unsigned int DIR_FileSize;   // æ–‡ä»¶å¤§å° 4byte
 };
 
-// extern "C" {
-// void printAsm(const char *str, int color);
-// }
+extern "C" {
+void printAsm(const char *str, int color);
+}
 
 bool readImage(string);
 void repl();
@@ -70,14 +68,6 @@ int main() {
     image.close();
     return 0;
 }
-
-// int main() {
-//     // printDefault("this is white\n");
-//     printRed("this is red\n");
-//     printDefault("2-this is white\n");
-//     printRed("2-this is red\n");
-//     return 0;
-// }
 
 void repl() {
     // an infinite loop to exec commands
@@ -119,7 +109,7 @@ Command parseCommand(string command) {
             }
         }
     }
-    if (path.length() == 0) path = "/";  // lsÄ¬ÈÏÎª/
+    if (path.length() == 0) path = "/";  // lsé»˜è®¤ä¸º/
     Command cmd = {operand : operand, option : option, path : path};
     return cmd;
 }
@@ -137,7 +127,7 @@ void exec(Command command) {
 }
 
 void lsExec(Command command) {
-    // ÅĞ¶ÏlsµÄÃüÁîÀïÊÇ²»ÊÇÓĞ·ÇlÖ¸Áî
+    // åˆ¤æ–­lsçš„å‘½ä»¤é‡Œæ˜¯ä¸æ˜¯æœ‰élæŒ‡ä»¤
     for (int i = 0; i < command.option.length(); i++) {
         if (command.option[i] != 'l') {
             printDefault(command.operand + ": inapplicable options --" +
@@ -145,7 +135,7 @@ void lsExec(Command command) {
             return;
         }
     }
-    // ÅĞ¶Ï´òÓ¡µÄÄÚÈİÊÇ·ñĞèÒªl
+    // åˆ¤æ–­æ‰“å°çš„å†…å®¹æ˜¯å¦éœ€è¦l
     int option = 0;
     if (command.option.length() > 0 && command.option[0] == 'l') option = 1;
     int pos = findFile(command.path);
@@ -164,7 +154,7 @@ void lsExec(Command command) {
 }
 
 void lsDFS(int pos, int param) {
-    /* µİ¹é´òÓ¡ÎÄ¼şµ×²¿µÄĞÅÏ¢£¬Èç¹ûparamÊÇ1,¾ÍÒª´òÓ¡paramµÄÏêÏ¸ĞÅÏ¢*/
+    /* é€’å½’æ‰“å°æ–‡ä»¶åº•éƒ¨çš„ä¿¡æ¯ï¼Œå¦‚æœparamæ˜¯1,å°±è¦æ‰“å°paramçš„è¯¦ç»†ä¿¡æ¯*/
     File &file = fileArray[pos];
     if (file.depth == 0) {
         printDefault(file.name + " ");
@@ -181,20 +171,20 @@ void lsDFS(int pos, int param) {
         printRed(".. ");
         if (param == 1) printDefault("\n");
     }
-    // ´òÓ¡×ÓÎÄ¼şºÍ×ÓÎÄ¼ş¼Ğ
+    // æ‰“å°å­æ–‡ä»¶å’Œå­æ–‡ä»¶å¤¹
     for (int i = pos + 1; i < fileArraySize; i++) {
         File &cur = fileArray[i];
-        if (cur.depth == file.depth) break;  // ÉîËÑµ½Í·ÁË
+        if (cur.depth == file.depth) break;  // æ·±æœåˆ°å¤´äº†
         if (cur.depth == file.depth + 1) {
             if (cur.attribute == 0) {
-                // ÎÄ¼ş¼Ğ
+                // æ–‡ä»¶å¤¹
                 printRed(cur.simple_Name + "  ");
                 if (param == 1) {
                     printDefault(to_string(subDirNum(i)) + "  ");
                     printDefault(to_string(subFileNum(i)) + "\n");
                 }
             } else {
-                // ÎÄ¼ş
+                // æ–‡ä»¶
                 printDefault(cur.simple_Name + "  ");
                 if (param == 1) {
                     printDefault(to_string(cur.size) + "\n");
@@ -203,7 +193,7 @@ void lsDFS(int pos, int param) {
         }
     }
     printDefault("\n");
-    // µİ¹é´òÓ¡×ÓÎÄ¼ş¼ĞÀïµÄ¶«Î÷
+    // é€’å½’æ‰“å°å­æ–‡ä»¶å¤¹é‡Œçš„ä¸œè¥¿
     for (int i = pos + 1; i < fileArraySize; i++) {
         File &cur = fileArray[i];
         if (cur.depth == file.depth) break;
@@ -227,7 +217,7 @@ void catExec(Command command) {
     File file = fileArray[pos];
     if (file.attribute == 0) {
         // is a dir
-        printDefault("cat: " + command.path + ":is a dir\n");
+        printDefault("cat: " + command.path + ": is a dir\n");
         return;
     }
     if (file.attribute == 1) catCommand(pos);
@@ -256,7 +246,7 @@ void catCommand(int pos) {
 
 bool readImage(string imageName) {
     // read the img file, start from its root part
-    // ½«rootÏÂµÄËùÓĞÎÄ¼ş¶¼ÀûÓÃFAT±í´æµ½fileArrayÀï
+    // å°†rootä¸‹çš„æ‰€æœ‰æ–‡ä»¶éƒ½åˆ©ç”¨FATè¡¨å­˜åˆ°fileArrayé‡Œ
     image.open(imageName);
     if (!image) {
         return false;
@@ -266,40 +256,35 @@ bool readImage(string imageName) {
     root.simple_Name = "/";
     root.attribute = 0;
     root.size = 0;
-    // 1¸öÒıµ¼ÉÈÇø£¬8+8¸öFAT£¬12¸öÉÈÇøµÄroot
-    root.start_cluster = -12;  // »»Ëã³É´ØºÅ, rootÏÈµ±Ëû12¸öÉÈÇø
+    // 1ä¸ªå¼•å¯¼æ‰‡åŒºï¼Œ8+8ä¸ªFATï¼Œ12ä¸ªæ‰‡åŒºçš„root
+    root.start_cluster = -12;  // æ¢ç®—æˆç°‡å·, rootè€¿ç›´çš„å½“ä»–12ä¸ªæ‰‡åŒº
     root.depth = 0;
     fileArray[fileArraySize++] = root;
     readDir(root);
     return true;
 }
 
-void printDefault(string s) {
-    cout << s;
-    // printAsm(s.c_str(), 0);
-}
-void printRed(string s) {
-    cout << s;
-    // printAsm(s.c_str(), 1);
-}
+void printDefault(string s) { printAsm(s.c_str(), 0); }
+void printRed(string s) { printAsm(s.c_str(), 1); }
+
 void readDir(File &dir) {
     DirEntry tmpDirEntry;
     DirEntry *tmpDirPtr = &tmpDirEntry;
-    // ¶ÔÓ¦ÉÈÇøµÄÆğÊ¼µØÖ·£¬Èç¹ûÊÇrootÒª-12
+    // å¯¹åº”æ‰‡åŒºçš„èµ·å§‹åœ°å€ï¼Œå¦‚æœæ˜¯rootè¦-12
     int start = (dir.start_cluster + 31) * 512;
     for (int i = 0; i < 16; i++) {
-        // ±éÀúµÚÒ»¸öÉÈÇøÀïËùÓĞµÄÄ¿Â¼ÌõÄ¿
-        // Ò»¸öÉÈÇøÀï×î¶à16¸öÌõÄ¿
+        // éå†ç¬¬ä¸€ä¸ªæ‰‡åŒºé‡Œæ‰€æœ‰çš„ç›®å½•æ¡ç›®
+        // ä¸€ä¸ªæ‰‡åŒºé‡Œæœ€å¤š16ä¸ªæ¡ç›®
         image.seekg(start + i * 32);
-        image.read((char *)tmpDirPtr, 32);  // ¶ÁÈ¡32¸öbyte´æµ½tmpDirEntryÀï
+        image.read((char *)tmpDirPtr, 32);  // è¯»å–32ä¸ªbyteå­˜åˆ°tmpDirEntryé‡Œ
         if (tmpDirEntry.DIR_Name[0] == '\0') {
-            break;  // ¶Áµ½ÁË¿ÕÎÄ¼ş£¬¶ÁÈ¡½áÊø
+            break;  // è¯»åˆ°äº†ç©ºæ–‡ä»¶ï¼Œè¯»å–ç»“æŸ
         }
         if (tmpDirEntry.DIR_Name[0] > 'Z' || tmpDirEntry.DIR_Name[0] < 'A')
-            continue;  // Õë¶ÔÖ¸Ïò±¾µØµÄÄ¿Â¼±ÈÈç., .., ºÍÒ»Ğ©Òõ¼äÎÄ¼ş
+            continue;  // é’ˆå¯¹æŒ‡å‘æœ¬åœ°çš„ç›®å½•æ¯”å¦‚., .., å’Œä¸€äº›é˜´é—´æ–‡ä»¶
         if (tmpDirEntry.attribute != 0x10 && tmpDirEntry.attribute != 0x20 &&
             tmpDirEntry.attribute != 0x00) {
-            // ·ÇÎÄ¼ş¼ĞºÍÆÕÍ¨ÎÄ¼ş
+            // éæ–‡ä»¶å¤¹å’Œæ™®é€šæ–‡ä»¶
             continue;
         }
         File file;
@@ -310,7 +295,7 @@ void readDir(File &dir) {
         } else {
             file.name = dir.name + "/" + file.simple_Name;
         }
-        // ÅĞ¶Ï¶ÁÈ¡µÄÎÄ¼şÀàĞÍ
+        // åˆ¤æ–­è¯»å–çš„æ–‡ä»¶ç±»å‹
         if (tmpDirEntry.attribute == 0x10) {
             file.attribute = 0;
         } else {
@@ -321,25 +306,25 @@ void readDir(File &dir) {
         file.depth = dir.depth + 1;
         fileArray[fileArraySize++] = file;
         if (file.attribute == 0) {
-            // Èç¹ûÊÇÎÄ¼ş¼Ğ¾Íµİ¹é¶ÁÈ¡Ä¿Â¼
+            // å¦‚æœæ˜¯æ–‡ä»¶å¤¹å°±é€’å½’è¯»å–ç›®å½•
             readDir(file);
         }
     }
 }
 
 string getFileName(DirEntry &dirEntry) {
-    /** ½âÎöÎÄ¼ş»ñµÃÎÄ¼şµÄÃû³Æ */
+    /** è§£ææ–‡ä»¶è·å¾—æ–‡ä»¶çš„åç§° */
     string fileName = dirEntry.DIR_Name;
     string attr = dirEntry.DIR_Attr;
     int fileNameLen = 0;
     if (dirEntry.attribute == 0x10) {
-        // ÎÄ¼ş¼ĞµÄÃû×Ö×î¶àÕ¼8×Ö½Ú
+        // æ–‡ä»¶å¤¹çš„åå­—æœ€å¤šå 8å­—èŠ‚
         fileName = space_trim(fileName);
     } else if (dirEntry.attribute == 0x20) {
-        // ÎÄ¼ş£¬³ıÁË8×Ö½ÚµÄÎÄ¼şÃû»¹ÓĞ3×Ö½ÚµÄÀ©Õ¹Ãû
+        // æ–‡ä»¶ï¼Œé™¤äº†8å­—èŠ‚çš„æ–‡ä»¶åè¿˜æœ‰3å­—èŠ‚çš„æ‰©å±•å
         fileName = space_trim(fileName);
         if (space_trim(attr).length() > 0)
-            // Ô¤·ÀÎŞÀàĞÍÎÄ¼ş
+            // é¢„é˜²æ— ç±»å‹æ–‡ä»¶
             fileName = fileName + "." + space_trim(attr);
     }
     return fileName;
@@ -377,39 +362,36 @@ int subFileNum(int pos) {
 
 int getNextCluster(int cluster) {
     /**
-     * ¸ù¾İÏÖÔÚµÄ´ØºÅ£¬²éFAT±íµÃµ½ÏÂÒ»¸ö´ØºÅ£¬Èç¹ûÃ»ÓĞ¾Í·µ»Ø-1
-     * Ò»¸ö´ØÕ¼12bitËùÒÔ½ĞFAT12
-     * 123456ÀïÃæÓĞÁ½¸ö´ØºÅ·Ö±ğÊÇ312ºÍ564
-     * FAT±íµÄ0ºÅ´ØºÍ1ºÅ´Ø²»ÄÜÊ¹ÓÃ£¬ËûÃÇ´¢´æµÄÊÇ»µ´Ø±ê¼Ç0xFF0ºÍ½áÎ²±êÖ¾0xFFF
+     * æ ¹æ®ç°åœ¨çš„ç°‡å·ï¼ŒæŸ¥FATè¡¨å¾—åˆ°ä¸‹ä¸€ä¸ªç°‡å·ï¼Œå¦‚æœæ²¡æœ‰å°±è¿”å›-1
+     * ä¸€ä¸ªç°‡å 12bitæ‰€ä»¥å«FAT12
+     * 123456é‡Œé¢æœ‰ä¸¤ä¸ªç°‡å·åˆ†åˆ«æ˜¯312å’Œ564
+     * FATè¡¨çš„0å·ç°‡å’Œ1å·ç°‡ä¸èƒ½ä½¿ç”¨ï¼Œä»–ä»¬å‚¨å­˜çš„æ˜¯åç°‡æ ‡è®°0xFF0å’Œç»“å°¾æ ‡å¿—0xFFF
      */
-    // ÕâÀï²»ÖªµÀÎªÊ²Ã´Ò»¶¨ÒªĞÂ¿ªÒ»¸öifstream²ÅÄÜÕı³£
-    ifstream image;
-    image.open(imageName);
     if (cluster == 0) {
-        // µÚ0¸ö´Ø¾Í±íÊ¾nilÁË
+        // ç¬¬0ä¸ªç°‡å°±è¡¨ç¤ºniläº†
         return -1;
     }
-    int num1, num2;
-    char *p1 = (char *)&num1;  // ÎªÁËÈ¡Õâ2¸öbyteÎÒÈİÒ×Ã´ÎÒ
+    int num1 = 0, num2 = 0;  // ä¸€å®šè¦åˆå§‹åŒ–ï¼Œnmæˆ‘äººå‚»äº†ï¼Œä¸ç„¶å°±ä¼šé«˜ä½æœ‰é—®é¢˜
+    char *p1 = (char *)&num1;  // ä¸ºäº†å–è¿™2ä¸ªbyteæˆ‘å®¹æ˜“ä¹ˆæˆ‘
     char *p2 = (char *)&num2;
-    int start = cluster / 2 * 3;  // Èı¸ö×Ö½ÚµÄ´ØµÄÆğÊ¼Î»ÖÃ
+    int start = cluster / 2 * 3;  // ä¸‰ä¸ªå­—èŠ‚çš„ç°‡çš„èµ·å§‹ä½ç½®
     int res = 0;
     if (cluster % 2 == 0) {
-        // ´¦Àí×ó²àµÄÁ½¸ö×Ö½Ú
+        // å¤„ç†å·¦ä¾§çš„ä¸¤ä¸ªå­—èŠ‚
         image.seekg(512 + start);
         image.read(p1, 1);
         image.read(p2, 1);
-        num2 &= 0x0f;              // È¡4Î»µÍµØÖ·
-        res = (num2 << 8) + num1;  // rnm£¬¼Ó·¨ÓÅÏÈ¼¶±ÈÒÆÎ»¸ß£¬ÎÒµ±³¡Å»ÍÂ
+        num2 &= 0x0f;              // å–4ä½ä½åœ°å€
+        res = (num2 << 8) + num1;  // rnmï¼ŒåŠ æ³•ä¼˜å…ˆçº§æ¯”ç§»ä½é«˜ï¼Œæˆ‘å½“åœºå‘•å
     } else {
-        // ´¦ÀíÓÒ²àÁ½¸ö×Ö½Ú
-        image.seekg(512 + start + 1, ios::beg);
+        // å¤„ç†å³ä¾§ä¸¤ä¸ªå­—èŠ‚
+        image.seekg(512 + start + 1);
         image.read(p1, 1);
         image.read(p2, 1);
-        num1 &= 0xf0;  // È¡¸ßµØÖ·
+        num1 &= 0xf0;  // å–é«˜åœ°å€
         res = (num1 >> 4) + (num2 << 4);
     }
-    // ÎÄ¼şµÄ×îºóÒ»¸ö´Ø
+    // æ–‡ä»¶çš„æœ€åä¸€ä¸ªç°‡
     if (res >= 0xff8) return -1;
     if (res == 0xff7) {
         printDefault("This cluster is broken\n");
@@ -420,8 +402,8 @@ int getNextCluster(int cluster) {
 
 int findFile(string path) {
     /**
-     * ¸ù¾İpathµÄÂ·¾¶ÕÒµ½fileËùÔÚfileArrayÀïµÄÎ»ÖÃ
-     * Èç¹ûÕÒµ½pos¾Í·µ»Ø£¬·ñÔò·µ»Ø-1±íÊ¾ÕÒ²»µ½ÎÄ¼ş
+     * æ ¹æ®pathçš„è·¯å¾„æ‰¾åˆ°fileæ‰€åœ¨fileArrayé‡Œçš„ä½ç½®
+     * å¦‚æœæ‰¾åˆ°poså°±è¿”å›ï¼Œå¦åˆ™è¿”å›-1è¡¨ç¤ºæ‰¾ä¸åˆ°æ–‡ä»¶
      */
     for (int pos = 0; pos < fileArraySize; pos++) {
         if (fileArray[pos].name == path) return pos;
@@ -429,7 +411,7 @@ int findFile(string path) {
     return -1;
 }
 string space_trim(string s) {
-    /** È¥³ı×Ö·û´®Ç°ºóµÄ¿Õ¸ñ£¬ÀıÈç"   ab  "±»×ª»¯Îª"ab" */
+    /** å»é™¤å­—ç¬¦ä¸²å‰åçš„ç©ºæ ¼ï¼Œä¾‹å¦‚"   ab  "è¢«è½¬åŒ–ä¸º"ab" */
     char chs[20];
     int size = 0;
     for (int i = 0; i < 8 && s[i] != ' '; i++) {

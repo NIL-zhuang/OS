@@ -1,13 +1,9 @@
 section .data
-color_red:
-db      1Bh, '[31;1m', 0
+color_red: db      1Bh, '[31;1m', 0
 .len    equ     $ - color_red
-color_default:  ; white
-db      1Bh, '[37;0m', 0
+; white
+color_default:  db      1Bh, '[37;1m', 0
 .len    equ     $ - color_default
-msg db 'Is Running', 0Ah
-msg_len equ $-msg
-
 
 global printAsm
 section .text
@@ -18,11 +14,11 @@ printAsm:
     ; ebx=1 => red
     mov eax, [esp+4]
     mov ebx, [esp+8]
-    cmp ebx, 0
-    je Set_Default_Color
+    cmp ebx, 1
+    jne Set_Default_Color
         ; ebx = 1, color red
         call set_color_red
-    jmp Print_Asm_Str
+        jmp Print_Asm_Str
     Set_Default_Color:
         ; ebx = 0, color default(white)
         call set_color_default
@@ -36,11 +32,13 @@ set_color_red:
     push ecx
     push ebx
     push eax
+
     mov eax, 4
     mov ebx, 1
     mov ecx, color_red
     mov edx, color_red.len
     int 80h
+
     pop eax
     pop ebx
     pop ecx
@@ -52,20 +50,17 @@ set_color_default:
     push ecx
     push ebx
     push eax
+
     mov eax, 4
     mov ebx, 1
     mov ecx, color_default
     mov edx, color_default.len
+    int 80h
+
     pop eax
     pop ebx
     pop ecx
     pop edx
-    ret
-
-quit:
-    mov ebx, 0
-    mov eax, 1
-    int 80h
     ret
 
 strlen:
@@ -96,22 +91,6 @@ sprint:
     mov ebx, 1
     int 80h
 
-    pop eax
-    pop ebx
-    pop ecx
-    pop edx
-    ret
-
-test_run:
-    push edx
-    push ecx
-    push ebx
-    push eax
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, msg
-    mov edx, msg_len
-    int 80h
     pop eax
     pop ebx
     pop ecx
