@@ -67,8 +67,17 @@ int main() {
     }
     printDefault("FAT12 image works successfully \n");
     repl();
+    image.close();
     return 0;
 }
+
+// int main() {
+//     // printDefault("this is white\n");
+//     printRed("this is red\n");
+//     printDefault("2-this is white\n");
+//     printRed("2-this is red\n");
+//     return 0;
+// }
 
 void repl() {
     // an infinite loop to exec commands
@@ -141,7 +150,7 @@ void lsExec(Command command) {
     if (command.option.length() > 0 && command.option[0] == 'l') option = 1;
     int pos = findFile(command.path);
     if (pos == -1) {
-        printDefault(command.operand + ": no access to" + command.path +
+        printDefault(command.operand + ": no access to " + command.path +
                      " : no such file or dir\n");
         return;
     }
@@ -158,9 +167,9 @@ void lsDFS(int pos, int param) {
     /* 递归打印文件底部的信息，如果param是1,就要打印param的详细信息*/
     File &file = fileArray[pos];
     if (file.depth == 0) {
-        printDefault(file.name);
+        printDefault(file.name + " ");
     } else {
-        printDefault(file.name + "/");
+        printDefault(file.name + "/ ");
     }
     if (param == 1) {
         printDefault(" " + to_string(subDirNum(pos)));
@@ -206,30 +215,36 @@ void lsDFS(int pos, int param) {
 
 void catExec(Command command) {
     if (command.option.length() > 0) {
-        printDefault("cat: inapplicable options -- " + command.option + "\n");
+        printDefault("cat: inapplicable options --" + command.option + "\n");
         return;
     }
     int pos = findFile(command.path);
+    if (pos == -1) {
+        printDefault(command.operand + ": no access to " + command.path +
+                     " : no such file or dir\n");
+        return;
+    }
     File file = fileArray[pos];
     if (file.attribute == 0) {
         // is a dir
         printDefault("cat: " + command.path + ":is a dir\n");
         return;
     }
+    if (file.attribute == 1) catCommand(pos);
 }
 
 void catCommand(int pos) {
     File &file = fileArray[pos];
     char text[9192];
     if (file.name.length() < 4 ||
-        file.name.substr(file.name.length() - 4, 4) != ".txt") {
+        file.name.substr(file.name.length() - 4, 4) != ".TXT") {
         printDefault("You can only read txt files\n");
         return;
     }
     int cluster = file.start_cluster;
     int cluster_count = 0;
     while (cluster != -1) {
-        int address = (cluster + 31) * 512;
+        long address = (cluster + 31) * 512;
         image.seekg(address);
         image.read((char *)text + cluster_count * 512, 512);
         cluster = getNextCluster(cluster);
@@ -256,7 +271,6 @@ bool readImage(string imageName) {
     root.depth = 0;
     fileArray[fileArraySize++] = root;
     readDir(root);
-    image.close();
     return true;
 }
 
@@ -281,7 +295,8 @@ void readDir(File &dir) {
         if (tmpDirEntry.DIR_Name[0] == '\0') {
             break;  // 读到了空文件，读取结束
         }
-        if (tmpDirEntry.DIR_Name[0] == '.') continue;  // 针对指向本地的目录
+        if (tmpDirEntry.DIR_Name[0] > 'Z' || tmpDirEntry.DIR_Name[0] < 'A')
+            continue;  // 针对指向本地的目录比如., .., 和一些阴间文件
         if (tmpDirEntry.attribute != 0x10 && tmpDirEntry.attribute != 0x20 &&
             tmpDirEntry.attribute != 0x00) {
             // 非文件夹和普通文件
@@ -325,7 +340,7 @@ string getFileName(DirEntry &dirEntry) {
         fileName = space_trim(fileName);
         if (space_trim(attr).length() > 0)
             // 预防无类型文件
-            fileName = fileName + "." + attr;
+            fileName = fileName + "." + space_trim(attr);
     }
     return fileName;
 }
@@ -365,7 +380,11 @@ int getNextCluster(int cluster) {
      * 根据现在的簇号，查FAT表得到下一个簇号，如果没有就返回-1
      * 一个簇占12bit所以叫FAT12
      * 123456里面有两个簇号分别是312和564
+     * FAT表的0号簇和1号簇不能使用，他们储存的是坏簇标记0xFF0和结尾标志0xFFF
      */
+    // 这里不知道为什么一定要新开一个ifstream才能正常
+    ifstream image;
+    image.open(imageName);
     if (cluster == 0) {
         // 第0个簇就表示nil了
         return -1;
@@ -380,17 +399,22 @@ int getNextCluster(int cluster) {
         image.seekg(512 + start);
         image.read(p1, 1);
         image.read(p2, 1);
-        num2 &= 0x0f;  // 取右边4位低地址
-        res = num2 << 8 + num1;
+        num2 &= 0x0f;              // 取4位低地址
+        res = (num2 << 8) + num1;  // rnm，加法优先级比移位高，我当场呕吐
     } else {
         // 处理右侧两个字节
-        image.seekg(512 + start + 1);
+        image.seekg(512 + start + 1, ios::beg);
         image.read(p1, 1);
         image.read(p2, 1);
-        num1 &= 0xf0;  // 取左边
+        num1 &= 0xf0;  // 取高地址
         res = (num1 >> 4) + (num2 << 4);
     }
-    if (res >= 0x0ff8) return -1;  // 超过最后一个簇
+    // 文件的最后一个簇
+    if (res >= 0xff8) return -1;
+    if (res == 0xff7) {
+        printDefault("This cluster is broken\n");
+        return -1;
+    }
     return res;
 }
 
