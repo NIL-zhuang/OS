@@ -52,7 +52,7 @@ int subFileNum(int);
 string space_trim(string);
 int getNextCluster(int);
 
-string imageName = "a.img";
+string imageName = "a1.img";
 File fileArray[4096];
 int fileArraySize = 0;
 ifstream image;
@@ -109,7 +109,7 @@ Command parseCommand(string command) {
             }
         }
     }
-    if (path.length() == 0) path = "/";  // ls默认为/
+    // if (path.length() == 0) path = "/";  // ls默认为/
     Command cmd = {operand : operand, option : option, path : path};
     return cmd;
 }
@@ -128,6 +128,9 @@ void exec(Command command) {
 
 void lsExec(Command command) {
     // 判断ls的命令里是不是有非l指令
+    if (command.path.length() == 0 || command.path == ".") {
+        command.path = "/";
+    }
     for (int i = 0; i < command.option.length(); i++) {
         if (command.option[i] != 'l') {
             printDefault(command.operand + ": inapplicable options --" +
@@ -204,9 +207,16 @@ void lsDFS(int pos, int param) {
 }
 
 void catExec(Command command) {
+    if (command.path.length() == 0) {
+        printDefault("cat: no file to show\n");
+        return;
+    }
     if (command.option.length() > 0) {
         printDefault("cat: inapplicable options --" + command.option + "\n");
         return;
+    }
+    if (command.path[0] != '/') {
+        command.path = '/' + command.path;
     }
     int pos = findFile(command.path);
     if (pos == -1) {
@@ -264,8 +274,14 @@ bool readImage(string imageName) {
     return true;
 }
 
-void printDefault(string s) { printAsm(s.c_str(), 0); }
-void printRed(string s) { printAsm(s.c_str(), 1); }
+void printDefault(string s) {
+    // cout << s;
+    printAsm(s.c_str(), 0);
+}
+void printRed(string s) {
+    // cout << s;
+    printAsm(s.c_str(), 1);
+}
 
 void readDir(File &dir) {
     DirEntry tmpDirEntry;
@@ -284,7 +300,7 @@ void readDir(File &dir) {
             continue;  // 针对指向本地的目录比如., .., 和一些阴间文件
         if (tmpDirEntry.attribute != 0x10 && tmpDirEntry.attribute != 0x20 &&
             tmpDirEntry.attribute != 0x00) {
-            // 非文件夹和普通文件
+            // 非文件夹和普通文件,0x00针对windows这个sb
             continue;
         }
         File file;
@@ -314,13 +330,18 @@ void readDir(File &dir) {
 
 string getFileName(DirEntry &dirEntry) {
     /** 解析文件获得文件的名称 */
-    string fileName = dirEntry.DIR_Name;
+    // string fileName = dirEntry.DIR_Name;
+    string fileName;
+    for (int i = 0; i < 8; i++) {
+        fileName += dirEntry.DIR_Name[i];
+    }
     string attr = dirEntry.DIR_Attr;
     int fileNameLen = 0;
     if (dirEntry.attribute == 0x10) {
         // 文件夹的名字最多占8字节
         fileName = space_trim(fileName);
-    } else if (dirEntry.attribute == 0x20) {
+    } else if (dirEntry.attribute == 0x20 || dirEntry.attribute == 0x00) {
+        // 这个0x00是windows下的文件类型
         // 文件，除了8字节的文件名还有3字节的扩展名
         fileName = space_trim(fileName);
         if (space_trim(attr).length() > 0)
