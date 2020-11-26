@@ -132,7 +132,6 @@ ADD_Helper:
     ret
 
 Cmp_Greater:
-    ; FIXME: 无法判定到a比b大
     ; 比较a和b，如果a>=b，那就把bigger_ab设为0
     ; 默认是0，所以只要遇到a<b，就把他设成1，然后结束
     push edi

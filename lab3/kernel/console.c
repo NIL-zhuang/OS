@@ -25,6 +25,17 @@ PRIVATE void set_cursor(unsigned int position);
 PRIVATE void set_video_start_addr(u32 addr);
 PRIVATE void flush(CONSOLE* p_con);
 
+PUBLIC void cleanConsole(CONSOLE* p_con) {
+    u8* p_vmem;
+    while (p_con->cursor > p_con->original_addr) {
+        p_vmem = (u8*)(V_MEM_BASE + p_con->cursor * 2);
+        *(p_vmem - 1) = DEFAULT_CHAR_COLOR;
+        *(p_vmem - 2) = '\0';
+        p_con->cursor--;
+    }
+    flush(p_con);
+}
+
 /*======================================================================*
 			   init_screen
  *======================================================================*/
@@ -52,6 +63,7 @@ PUBLIC void init_screen(TTY* p_tty) {
     }
 
     set_cursor(p_tty->p_console->cursor);
+    cleanConsole(p_tty->p_console);
 }
 
 /*======================================================================*
