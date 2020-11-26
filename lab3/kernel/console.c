@@ -165,6 +165,11 @@ PUBLIC void out_char(CONSOLE* p_con, char ch) {
     flush(p_con);
 }
 
+PUBLIC void setColor(CONSOLE* p_con, int index, char color) {
+    u8* p_vmem = (u8*)(V_MEM_BASE + 2 * index);
+    *(p_vmem + 1) = color;
+}
+
 /*======================================================================*
                            flush
 *======================================================================*/
