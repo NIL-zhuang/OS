@@ -24,11 +24,16 @@ PRIVATE void tty_do_read(TTY* p_tty);
 PRIVATE void tty_do_write(TTY* p_tty);
 PRIVATE void put_key(TTY* p_tty, u32 key);
 
+PRIVATE int ESCMode;
+PRIVATE int searchCursor;
+PRIVATE char searchStr;
+
 /*======================================================================*
                            task_tty
  *======================================================================*/
 PUBLIC void task_tty() {
     TTY* p_tty;
+    ESCMode = 0;
 
     init_keyboard();
 
@@ -36,10 +41,16 @@ PUBLIC void task_tty() {
         init_tty(p_tty);
     }
     select_console(0);
+
     while (1) {
         for (p_tty = TTY_FIRST; p_tty < TTY_END; p_tty++) {
             tty_do_read(p_tty);
             tty_do_write(p_tty);
+        }
+        int start_time = get_ticks();
+        if (get_ticks() - start_time >= 20000) {
+            // TODO: 每隔20秒清空屏幕
+            cleanConsole(TTY_FIRST->p_console);
         }
     }
 }
@@ -81,6 +92,18 @@ PUBLIC void in_process(TTY* p_tty, u32 key) {
                     scroll_screen(p_tty->p_console, SCR_UP);
                 }
                 break;
+            case TAB:
+                put_key(p_tty, '\t');
+                break;
+            case ESC:
+                if (ESCMode == false) {
+                    ESCMode = true;
+                    searchCursor = p_tty->p_console->cursor;
+                } else if (ESCMode == true) {
+                    ESCMode = false;
+                    endESCMode(p_tty->p_console);
+                }
+                break;
             case F1:
             case F2:
             case F3:
@@ -102,6 +125,10 @@ PUBLIC void in_process(TTY* p_tty, u32 key) {
                 break;
         }
     }
+}
+
+PRIVATE void endESCMode(CONSOLE* console) {
+    u8* p_vmem;
 }
 
 /*======================================================================*

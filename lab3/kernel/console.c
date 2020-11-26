@@ -25,6 +25,10 @@ PRIVATE void set_cursor(unsigned int position);
 PRIVATE void set_video_start_addr(u32 addr);
 PRIVATE void flush(CONSOLE* p_con);
 
+PRIVATE char pos_record[V_MEM_SIZE / 2];
+PRIVATE char ope_record[V_MEM_SIZE / 2];
+PRIVATE int ope_count = 0;
+
 PUBLIC void cleanConsole(CONSOLE* p_con) {
     u8* p_vmem;
     while (p_con->cursor > p_con->original_addr) {
@@ -77,24 +81,76 @@ PUBLIC int is_current_console(CONSOLE* p_con) {
 			   out_char
  *======================================================================*/
 PUBLIC void out_char(CONSOLE* p_con, char ch) {
+    // vmem始终指向要输入的那个字符的显存地址
     u8* p_vmem = (u8*)(V_MEM_BASE + p_con->cursor * 2);
 
     switch (ch) {
         case '\n':
             if (p_con->cursor < p_con->original_addr + p_con->v_mem_limit - SCREEN_WIDTH) {
+                // 在操作记录里，将回车的起始地点和终止地点标记为\n
+                int start = (int)(p_con->cursor - p_con->original_addr);
+                pos_record[start] = '\n';
+                ope_record[ope_count++] = '\b';  // 压入撤销的\b
+                // 进入一个新行
                 p_con->cursor = p_con->original_addr + SCREEN_WIDTH * ((p_con->cursor - p_con->original_addr) / SCREEN_WIDTH + 1);
+                int end = (int)(p_con->cursor - p_con->original_addr) - 1;
+                // 在新行之前一个的位置存入一个\n
+                pos_record[end] = '\n';
+                for (int i = start + 1; i < end; i++) pos_record[i] = '\0';
             }
             break;
         case '\b':
             if (p_con->cursor > p_con->original_addr) {
-                p_con->cursor--;
-                *(p_vmem - 2) = ' ';
-                *(p_vmem - 1) = DEFAULT_CHAR_COLOR;
+                // p_vmem指向要被删掉的那个字节的地址
+                // pos也是在要被删掉的字的地方
+                int pos = (int)(p_con->cursor - p_con->original_addr) - 1;
+                switch (pos_record[pos]) {
+                    case '\t':
+                        for (int i = 0; i < 4; i++) {
+                            pos_record[pos--] = '\0';
+                            p_con->cursor--;
+                            *(p_vmem - 1) = DEFAULT_CHAR_COLOR;
+                            *(p_vmem - 2) = '\0';
+                            p_vmem -= 2;
+                        }
+                        ope_record[ope_count++] = '\t';
+                        break;
+                    case '\n':
+                        ope_record[ope_count++] = '\n';
+                        do {
+                            pos_record[pos--] = '\0';
+                            *(p_vmem - 1) = DEFAULT_CHAR_COLOR;
+                            *(p_vmem - 2) = '\0';
+                            p_con->cursor--;
+                            p_vmem -= 2;
+                        } while (pos_record[pos] != '\n');
+                        p_con->cursor--;
+                        pos_record[pos] = '\0';
+                        break;
+                    default:
+                        ope_record[ope_count++] = *(p_vmem - 2);
+                        p_con->cursor--;
+                        *(p_vmem - 2) = '\0';
+                        *(p_vmem - 1) = DEFAULT_CHAR_COLOR;
+                        break;
+                }
+            }
+            break;
+        case '\t':
+            if (p_con->cursor < p_con->original_addr + p_con->v_mem_limit - 4) {
+                int pos = (int)(p_con->cursor - p_con->original_addr);
+                for (int i = 0; i < 4; i++) {
+                    *p_vmem++ = ' ';
+                    *p_vmem++ = DEFAULT_CHAR_COLOR;
+                    p_con->cursor++;
+                    pos_record[pos++] = '\t';
+                }
+                ope_record[ope_count++] = '\b';
             }
             break;
         default:
-            if (p_con->cursor <
-                p_con->original_addr + p_con->v_mem_limit - 1) {
+            if (p_con->cursor < p_con->original_addr + p_con->v_mem_limit - 1) {
+                ope_record[ope_count++] = '\b';
                 *p_vmem++ = ch;
                 *p_vmem++ = DEFAULT_CHAR_COLOR;
                 p_con->cursor++;
