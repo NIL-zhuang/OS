@@ -160,6 +160,8 @@ PUBLIC void keyboard_read(TTY* p_tty) {
 
             key = keyrow[column];
 
+            if ((ctrl_l || ctrl_r) && (key == 'z' || key == 'Z')) key = CTRL_Z;
+
             switch (key) {
                 case SHIFT_L:
                     shift_l = make;

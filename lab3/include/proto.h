@@ -46,6 +46,7 @@ PUBLIC void out_char(CONSOLE* p_con, char ch);
 PUBLIC void scroll_screen(CONSOLE* p_con, int direction);
 PUBLIC void cleanConsole(CONSOLE* p_con);
 PUBLIC void setColor(CONSOLE* p_con, int index, char color);
+PUBLIC void undoOperation(CONSOLE* p_con);
 
 /* 以下是系统调用相关 */
 

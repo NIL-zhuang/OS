@@ -15,12 +15,20 @@
 #include "global.h"
 #include "proto.h"
 
+PRIVATE int clock_count;
 /*======================================================================*
                            clock_handler
  *======================================================================*/
 PUBLIC void clock_handler(int irq) {
     ticks++;
+    clock_count++;
     p_proc_ready->ticks--;
+    if (clock_count >= 20000 && STATUS == NORMAL_MODE) {
+        cleanConsole(console_table);
+        // out_char(console_table, '?');
+        clock_count = 0;
+    }
+    // out_char(console_table, '?');
 
     if (k_reenter != 0) {
         return;
@@ -47,6 +55,7 @@ PUBLIC void milli_delay(int milli_sec) {
  *======================================================================*/
 PUBLIC void init_clock() {
     /* 初始化 8253 PIT */
+    clock_count = 0;
     out_byte(TIMER_MODE, RATE_GENERATOR);
     out_byte(TIMER0, (u8)(TIMER_FREQ / HZ));
     out_byte(TIMER0, (u8)((TIMER_FREQ / HZ) >> 8));

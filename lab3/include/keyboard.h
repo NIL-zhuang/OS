@@ -114,7 +114,7 @@
 #define PAD_MID PAD_5               /* Middle key	*/
 #define PAD_DEL PAD_DOT             /* Del		*/
 
-#define CTRL_Z (0xFF + FLAG_EXT) /* Ctrl z cancel */
+#define CTRL_Z (0xAA + FLAG_EXT) /* Ctrl z cancel */
 /************************************************************************/
 /*                         Stucture Definition                          */
 /************************************************************************/

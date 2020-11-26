@@ -102,4 +102,8 @@
 #define true 1
 #define false 0
 
+#define NORMAL_MODE 0
+#define ESC_MODE 1
+#define SEARCH_MODE 2
+
 #endif /* _ORANGES_CONST_H_ */

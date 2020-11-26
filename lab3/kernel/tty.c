@@ -19,20 +19,16 @@
 #define TTY_FIRST (tty_table)
 #define TTY_END (tty_table + NR_CONSOLES)
 
-#define NORMAL_MODE 0
-#define ESC_MODE 1
-#define SEARCH_MODE 2
-
 PRIVATE void init_tty(TTY* p_tty);
 PRIVATE void tty_do_read(TTY* p_tty);
 PRIVATE void tty_do_write(TTY* p_tty);
 PRIVATE void put_key(TTY* p_tty, u32 key);
 
-PRIVATE int STATUS = NORMAL_MODE;
 PRIVATE int searchStartCursor = 0;
 PRIVATE char searchStr[20] = {'\0'};
 PRIVATE int lenSearchStr = 0;
 PRIVATE int tabSearchCnt = 0;
+PUBLIC int STATUS = NORMAL_MODE;
 
 /*======================================================================*
                            task_tty
@@ -42,6 +38,7 @@ PUBLIC void task_tty() {
     STATUS = NORMAL_MODE;  // 正常情况下都处于正常输入状态
     searchStartCursor = 0;
     lenSearchStr = 0;
+    tabSearchCnt = 0;
 
     init_keyboard();
 
@@ -55,11 +52,6 @@ PUBLIC void task_tty() {
             tty_do_read(p_tty);
             tty_do_write(p_tty);
         }
-        // int start_time = get_ticks();
-        // if (get_ticks() - start_time >= 20000) {
-        //     // TODO: 每隔20秒清空屏幕
-        //     cleanConsole(TTY_FIRST->p_console);
-        // }
     }
 }
 
@@ -114,7 +106,7 @@ PUBLIC void in_process(TTY* p_tty, u32 key) {
                 }
                 break;
             case CTRL_Z:
-                put_key(p_tty, '?');
+                undoOperation(p_tty->p_console);
                 break;
             case F1:
             case F2:
@@ -179,10 +171,10 @@ PRIVATE void tty_do_write(TTY* p_tty) {
             out_char(p_tty->p_console, ch);
         } else if (STATUS == ESC_MODE) {
             // 输入查找函数的时候
-            // 搜索越界
             switch (ch) {
                 case '\b':
                     if (p_tty->p_console->cursor <= searchStartCursor)
+                        // 搜索越界
                         return;
                     else {
                         out_char(p_tty->p_console, ch);
@@ -213,10 +205,10 @@ PRIVATE void tty_do_write(TTY* p_tty) {
 PUBLIC void endESCMode(CONSOLE* p_con) {
     // 删除搜索的字符串
     // 不能用lenSearchStr来作为删除的个数，因为如果有tab会多删
+    STATUS = NORMAL_MODE;  // 退出查找模式
     for (int i = 0; i < lenSearchStr - tabSearchCnt * 3; i++) {
         out_char(p_con, '\b');
     }
-    tabSearchCnt = 0;
     // 重置颜色
     for (int i = 0; i < searchStartCursor - p_con->original_addr; i++) {
         setColor(p_con, i + p_con->original_addr, DEFAULT_CHAR_COLOR);
@@ -226,7 +218,7 @@ PUBLIC void endESCMode(CONSOLE* p_con) {
         searchStr[i] = '?';
     }
     lenSearchStr = 0;
-    STATUS = NORMAL_MODE;  // 退出查找模式
+    tabSearchCnt = 0;
 }
 
 PUBLIC void showSearchResult(CONSOLE* p_con) {
