@@ -1,1 +1,5 @@
 *.img
+lab4/.vscode/c_cpp_properties.json
+lab4/kernel.bin
+lab4/Makefile
+lab4/.vscode/settings.json

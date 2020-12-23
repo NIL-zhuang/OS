@@ -340,13 +340,13 @@ save:
 ; ====================================================================================
 sys_call:
         call    save
-	push	dword [p_proc_ready]
+	; push	dword [p_proc_ready]
         sti
 
 	push	ecx
 	push	ebx
-        call    [sys_call_table + eax * 4]
-	add	esp, 4 * 3
+    call    [sys_call_table + eax * 4]
+	add	esp, 4 * 2
 
         mov     [esi + EAXREG - P_STACKBASE], eax
         cli
@@ -358,7 +358,7 @@ sys_call:
 ; ====================================================================================
 restart:
 	mov	esp, [p_proc_ready]
-	lldt	[esp + P_LDT_SEL] 
+	lldt	[esp + P_LDT_SEL]
 	lea	eax, [esp + P_STACKTOP]
 	mov	dword [tss + TSS3_S_SP0], eax
 restart_reenter:
@@ -370,4 +370,3 @@ restart_reenter:
 	popad
 	add	esp, 4
 	iretd
-

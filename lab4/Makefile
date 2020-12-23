@@ -59,10 +59,10 @@ disasm :
 # We assume that "a.img" exists in current folder
 buildimg :
 	dd if=boot/boot.bin of=a.img bs=512 count=1 conv=notrunc
-	sudo mount -o loop a.img /home/nil/Documents/code/OS/lab3/mnt/floppy/
-	sudo cp -fv boot/loader.bin /home/nil/Documents/code/OS/lab3/mnt/floppy/
-	sudo cp -fv kernel.bin /home/nil/Documents/code/OS/lab3/mnt/floppy
-	sudo umount /home/nil/Documents/code/OS/lab3/mnt/floppy
+	sudo mount -o loop a.img /home/nil/Documents/code/OS/lab4/mnt/floppy/
+	sudo cp -fv boot/loader.bin /home/nil/Documents/code/OS/lab4/mnt/floppy/
+	sudo cp -fv kernel.bin /home/nil/Documents/code/OS/lab4/mnt/floppy
+	sudo umount /home/nil/Documents/code/OS/lab4/mnt/floppy
 
 boot/boot.bin : boot/boot.asm boot/include/load.inc boot/include/fat12hdr.inc
 	$(ASM) $(ASMBFLAGS) -o $@ $<
