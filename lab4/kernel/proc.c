@@ -63,45 +63,60 @@ PUBLIC int sys_sleep(int milli_seconds) {
 }
 
 PUBLIC int sys_P_process(SEMAPHORE* s) {
+    disable_int();
     s->value--;
+    printf("\n%x\n", s->value);
+    printf("\nsys_P_Process\n");
     if (s->value < 0) {
-        p_proc_ready->blocked = True;                   // 阻塞自己
-        s->process_list[s->cur_size++] = p_proc_ready;  // 移入等待队列
+        p_proc_ready->blocked = True;
+        s->process_list[s->tail] = p_proc_ready;
+        s->tail = (s->tail + 1) % PROCESS_LIST_SIZE;
+        schedule();
     }
-    schedule();
-    return 0;
+    enable_int();
 }
 
 PUBLIC int sys_V_process(SEMAPHORE* s) {
+    disable_int();
+    // printf("\n sys_V_process \n");
     s->value++;
     if (s->value <= 0) {
-        // 释放一个等待进程转为就绪，进程继续执行
-        s->process_list[0]->blocked = False;
-        for (int i = 0; i < PROCESS_LIST_SIZE - 1; i++) {
-            s->process_list[i] = s->process_list[i + 1];
-        }
+        // 释放队列头的进程
+        PROCESS* proc = s->process_list[s->head];
+        proc->blocked = False;
+        // 队列数组移动
+        s->head = (s->head + 1) % PROCESS_LIST_SIZE;
     }
-    return 0;
+    enable_int();
 }
 
-PUBLIC int sys_my_display_str(char* str, int color) {
-    return 0;
+PUBLIC int sys_my_display_str(char* str, int color) {}
+
+void start_read(char name) {
 }
 
-void READER(char* name) {
-    printf(name);
-    printf(" Start Reading\n");
-    // printf(name);
-    // printf(" Is Reading\n");
-    // printf(name);
-    // printf("Finish Reading");
+void READER(char name) {
+    // 开始读
+    P_process(&mutex_count);
+    // sth_print();
+    if (readerCount == 0) P_process(&writeblock);
+    readerCount++;
+    V_process(&mutex_count);
+    printf("%c Start Reading\n", name);
+    // 进行读，对写操作加锁
+    printf("%c Is Reading\n", name);
+    // 完成读
+    P_process(&mutex_count);
+    readerCount--;
+    if (readerCount == 0) V_process(&writeblock);
+    V_process(&mutex_count);
+    printf("%c Finish Reading\n", name);
 }
 
-void WRITER(char* name) {
-    printf(name);
-    printf(" Start Writing\n");
-    // printf(name);
-    // printf(" Is Writing\n");
-    // printf(name);
-    // printf("Finish Writing\n");
+void WRITER(char name) {
+    P_process(&writeblock);
+    printf("%c Start Writing\n", name);
+    printf("%c Is Writing\n", name);
+    V_process(&writeblock);
+    printf("%c Finish Writing\n", name);
 }

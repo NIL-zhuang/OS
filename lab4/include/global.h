@@ -34,6 +34,8 @@ extern irq_handler irq_table[];
 extern TTY tty_table[];
 extern CONSOLE console_table[];
 
-EXTERN int readercount;
+EXTERN int readerCount;
 EXTERN SEMAPHORE writeblock;
-EXTERN SEMAPHORE mutex;
+EXTERN SEMAPHORE readerLimit;  // 限制同时读同一本书的人数
+EXTERN SEMAPHORE mutex_count;  // protect readercount mutex
+// EXTERN SEMAPHORE mutex_isReading;  // protect isReading

@@ -44,3 +44,8 @@ PUBLIC system_call sys_call_table[NR_SYS_CALL] = {
     sys_my_display_str,
     sys_P_process,
     sys_V_process};
+
+PUBLIC int readerCount = 0;
+PUBLIC SEMAPHORE writeblock = {1, 0, 0};
+PUBLIC SEMAPHORE readerLimit = {READER_SAME_TIME, 0, 0};
+PUBLIC SEMAPHORE mutex_count = {1, 0, 0};

@@ -29,8 +29,8 @@ void ReaderC();
 void WriterD();
 void WriterE();
 void NormalF();
-PUBLIC void WRITER(char* name);
-PUBLIC void READER(char* name);
+PUBLIC void WRITER(char name);
+PUBLIC void READER(char name);
 
 /* i8259.c */
 PUBLIC void put_irq_handler(int irq, irq_handler handler);
@@ -76,6 +76,7 @@ PUBLIC int sys_V_process(SEMAPHORE* s);
 /* 系统调用 - 用户级 */
 PUBLIC int get_ticks();
 PUBLIC void write(char* buf, int len);
+
 // 用户级的新增函数
 PUBLIC int sleep(int milli_seconds);
 PUBLIC int my_display_str(char* str, int color);

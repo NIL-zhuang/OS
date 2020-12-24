@@ -85,7 +85,6 @@ PUBLIC int kernel_main() {
     init_keyboard();
 
     restart();
-
     while (1) {
     }
 }
@@ -93,7 +92,7 @@ PUBLIC int kernel_main() {
 void ReaderA() {
     while (True) {
         // printf("A is reading\n");
-        READER("A");
+        READER('A');
         // printf("finish read A\n");
         milli_delay(20000);
         // sleep(2000);
@@ -103,7 +102,7 @@ void ReaderA() {
 void ReaderB() {
     while (True) {
         // printf("B is reading\n");
-        READER("B");
+        READER('B');
         milli_delay(30000);
         // sleep(3000);
     }
@@ -112,7 +111,7 @@ void ReaderB() {
 void ReaderC() {
     while (True) {
         // printf("C was reading\n");
-        READER("C");
+        READER('C');
         milli_delay(30000);
         // sleep(3000);
     }
@@ -121,7 +120,7 @@ void ReaderC() {
 void WriterD() {
     while (True) {
         // printf("D is writing\n");
-        WRITER("D");
+        WRITER('D');
         milli_delay(30000);
         // sleep(3000);
     }
@@ -130,7 +129,7 @@ void WriterD() {
 void WriterE() {
     while (True) {
         // printf("E is writing\n");
-        WRITER("E");
+        WRITER('E');
         milli_delay(40000);
         // sleep(4000);
     }
@@ -138,8 +137,11 @@ void WriterE() {
 
 void NormalF() {
     while (True) {
-        printf("F is counting\n");
-        // printf("F Is Counting\n");
+        // if (writeblock.value == 1) {
+        //     printf("%x Process Is Reading\n", readerCount);
+        // } else {
+        //     printf("Is Writing\n");
+        // }
         milli_delay(10000);
         // sleep(1000);
     }

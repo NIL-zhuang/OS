@@ -52,8 +52,9 @@ typedef struct s_task {
 
 typedef struct semaphore {
     int value;
+    int head;
+    int tail;
     PROCESS* process_list[PROCESS_LIST_SIZE];
-    int cur_size;
 } SEMAPHORE;
 
 /* Number of tasks & procs */
@@ -63,7 +64,7 @@ typedef struct semaphore {
 /* stacks of tasks */
 #define STACK_SIZE_TTY 0x8000
 
-#define STACK_SIZE_READER_A 0x0800
+#define STACK_SIZE_READER_A 0x8000
 #define STACK_SIZE_READER_B 0x8000
 #define STACK_SIZE_READER_C 0x8000
 #define STACK_SIZE_WRITER_D 0x8000
