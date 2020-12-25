@@ -41,7 +41,7 @@ PUBLIC void schedule() {
 
         if (!greatest_ticks) {
             for (p = proc_table; p < proc_table + NR_TASKS + NR_PROCS; p++) {
-                if (p->sleep_ticks > 0 || p->blocked == True) continue;
+                if (p->ticks > 0) continue;   // this is blocked
                 p->ticks = p->priority;
             }
         }
@@ -65,8 +65,6 @@ PUBLIC int sys_sleep(int milli_seconds) {
 PUBLIC int sys_P_process(SEMAPHORE* s) {
     disable_int();
     s->value--;
-    printf("\n%x\n", s->value);
-    printf("\nsys_P_Process\n");
     if (s->value < 0) {
         p_proc_ready->blocked = True;
         s->process_list[s->tail] = p_proc_ready;
@@ -78,7 +76,6 @@ PUBLIC int sys_P_process(SEMAPHORE* s) {
 
 PUBLIC int sys_V_process(SEMAPHORE* s) {
     disable_int();
-    // printf("\n sys_V_process \n");
     s->value++;
     if (s->value <= 0) {
         // 释放队列头的进程
@@ -92,31 +89,140 @@ PUBLIC int sys_V_process(SEMAPHORE* s) {
 
 PUBLIC int sys_my_display_str(char* str, int color) {}
 
-void start_read(char name) {
+PUBLIC void READER(char name, int time_slice){
+    printf("Reader %c Arrive\n", name);
+    if(FAIR_READ) READER_fair(name, time_slice);
+    else{
+        if(READER_FIRST) READER_rf(name, time_slice);
+        else READER_wf(name, time_slice);
+    }
 }
 
-void READER(char name) {
+PUBLIC void WRITER(char name, int time_slice){
+    printf("Writer %c Arrive\n", name);
+    if(FAIR_READ) WRITER_fair(name, time_slice);
+    else{
+        if(READER_FIRST) WRITER_rf(name, time_slice);
+        else WRITER_wf(name, time_slice);
+    }
+}
+
+void READER_rf(char name, int time_slice) {
     // 开始读
-    P_process(&mutex_count);
-    // sth_print();
+    P_process(&readerLimit);
+
+    P_process(&mutex_readerCount);
     if (readerCount == 0) P_process(&writeblock);
     readerCount++;
-    V_process(&mutex_count);
-    printf("%c Start Reading\n", name);
+    V_process(&mutex_readerCount);
+
     // 进行读，对写操作加锁
+    trueReaderCount += 1;
+    printf("%c Start Reading\n", name);
     printf("%c Is Reading\n", name);
+    sleep(time_slice * 900);
     // 完成读
-    P_process(&mutex_count);
+    printf("%c Finish Reading\n", name);
+    trueReaderCount -= 1;
+
+    V_process(&readerLimit);
+    sleep(time_slice * 100);
+    P_process(&mutex_readerCount);
     readerCount--;
     if (readerCount == 0) V_process(&writeblock);
-    V_process(&mutex_count);
-    printf("%c Finish Reading\n", name);
+    V_process(&mutex_readerCount);
 }
 
-void WRITER(char name) {
+void WRITER_rf(char name, int time_slice) {
     P_process(&writeblock);
     printf("%c Start Writing\n", name);
     printf("%c Is Writing\n", name);
-    V_process(&writeblock);
+    sleep(time_slice * 1000);
     printf("%c Finish Writing\n", name);
+    V_process(&writeblock);
+}
+
+void READER_fair(char name, int time_slice) {
+    // 开始读
+    P_process(&mutex_fair_read);
+
+    P_process(&readerLimit);
+    P_process(&mutex_readerCount);
+    if (readerCount == 0) P_process(&writeblock);
+    V_process(&mutex_fair_read);
+
+    printf("%c Start Reading\n", name);
+    readerCount++;
+    V_process(&mutex_readerCount);
+    // 进行读，对写操作加锁
+    sleep(time_slice * 900);
+    printf("%c Is Reading\n", name);
+    // 完成读
+    P_process(&mutex_readerCount);
+    readerCount--;
+    if (readerCount == 0) V_process(&writeblock);
+    V_process(&mutex_readerCount);
+    printf("%c Finish Reading\n", name);
+    V_process(&readerLimit);
+    sleep(time_slice * 100);
+}
+
+void WRITER_fair(char name, int time_slice) {
+    P_process(&mutex_fair_read);
+    P_process(&writeblock);
+    V_process(&mutex_fair_read);
+    printf("%c Start Writing\n", name);
+    printf("%c Is Writing\n", name);
+    sleep(time_slice * 900);
+    printf("%c Finish Writing\n", name);
+    V_process(&writeblock);
+    sleep(time_slice * 100);
+}
+
+void READER_wf(char name, int time_slice){
+    P_process(&readerLimit);
+
+    P_process(&write_first);
+    P_process(&mutex_readerCount);
+    if (readerCount == 0) P_process(&writeblock);
+    printf("%c Start Reading\n", name);
+    readerCount++;
+    V_process(&mutex_readerCount);
+    V_process(&write_first);
+
+    // 进行读，对写操作加锁
+    sleep(time_slice * 900);
+    printf("%c Is Reading\n", name);
+
+    // 完成读
+    P_process(&mutex_readerCount);
+    readerCount--;
+    if (readerCount == 0) V_process(&writeblock);
+    V_process(&mutex_readerCount);
+    printf("%c Finish Reading\n", name);
+
+    V_process(&readerLimit);
+    sleep(time_slice * 100);
+
+}
+
+void WRITER_wf(char name, int time_slice){
+    P_process(&mutex_writerCount);
+    writerCount+=1;
+    if(writerCount == 1) P_process(&write_first);
+    V_process(&mutex_writerCount);
+    P_process(&writeblock);
+    printf("%c Start Writing\n", name);
+    sleep(time_slice * 900);
+    printf("%c Is Writing\n", name);
+
+    P_process(&mutex_writerCount);
+    writerCount -= 1;
+    if(writerCount == 0)V_process(&write_first);
+    V_process(&mutex_writerCount);
+
+    printf("%c Finish Writing\n", name);
+    V_process(&writeblock);
+    sleep(time_slice * 100);
+
 }

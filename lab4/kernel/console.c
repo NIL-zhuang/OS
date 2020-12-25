@@ -105,7 +105,8 @@ PUBLIC void out_char(CONSOLE* p_con, char ch) {
     }
 
     while (p_con->cursor >= p_con->current_start_addr + SCREEN_SIZE) {
-        scroll_screen(p_con, SCR_DN);
+        // scroll_screen(p_con, SCR_DN);
+        cleanConsole(p_con);
     }
 
     flush(p_con);

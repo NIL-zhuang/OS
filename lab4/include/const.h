@@ -111,7 +111,8 @@
 
 #define READER_FIRST True
 #define FAIRNESS False
-#define READER_SAME_TIME 1
-#define TIME_SLICE 10000  // 1s
+#define READER_SAME_TIME 2
+#define READER_FIRST False
+#define FAIR_READ True
 
 #endif /* _ORANGES_CONST_H_ */

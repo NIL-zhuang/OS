@@ -33,7 +33,7 @@ PUBLIC void clock_handler(int irq) {
 }
 
 /*======================================================================*
-                              milli_delay
+                              
  *======================================================================*/
 PUBLIC void milli_delay(int milli_sec) {
     int t = get_ticks();

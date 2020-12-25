@@ -29,8 +29,16 @@ void ReaderC();
 void WriterD();
 void WriterE();
 void NormalF();
-PUBLIC void WRITER(char name);
-PUBLIC void READER(char name);
+
+PUBLIC void WRITER(char name, int time_slice);  // interface to writer
+PUBLIC void READER(char name, int time_slice);  // interface to reader
+
+PUBLIC void WRITER_rf(char name, int time_slice);   // reader first
+PUBLIC void READER_rf(char name, int time_slice);
+PUBLIC void WRITER_fair(char name, int time_slice); // fair read write
+PUBLIC void READER_fair(char name, int time_slice);
+PUBLIC void WRITER_wf(char name, int time_slice);   // writer first
+PUBLIC void READER_wf(char name, int time_slice);
 
 /* i8259.c */
 PUBLIC void put_irq_handler(int irq, irq_handler handler);

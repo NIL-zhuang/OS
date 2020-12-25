@@ -46,6 +46,12 @@ PUBLIC system_call sys_call_table[NR_SYS_CALL] = {
     sys_V_process};
 
 PUBLIC int readerCount = 0;
+PUBLIC int writerCount = 0;
+PUBLIC int trueReaderCount = 0;
 PUBLIC SEMAPHORE writeblock = {1, 0, 0};
 PUBLIC SEMAPHORE readerLimit = {READER_SAME_TIME, 0, 0};
-PUBLIC SEMAPHORE mutex_count = {1, 0, 0};
+PUBLIC SEMAPHORE mutex_readerCount = {1, 0, 0};
+PUBLIC SEMAPHORE mutex_writerCount = {1, 0, 0};
+PUBLIC SEMAPHORE mutex_reader = {1, 0, 0};
+PUBLIC SEMAPHORE write_first = {1, 0, 0};
+PUBLIC SEMAPHORE mutex_fair_read = {1, 0, 0};

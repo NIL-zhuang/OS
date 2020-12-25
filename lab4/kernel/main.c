@@ -15,6 +15,12 @@
 #include "global.h"
 #include "proto.h"
 
+PUBLIC void init_tasks(){
+    readerCount = 0;
+    writerCount = 0;
+    trueReaderCount = 0;
+}
+
 /*======================================================================*
                             kernel_main
  *======================================================================*/
@@ -80,7 +86,7 @@ PUBLIC int kernel_main() {
     ticks = 0;
 
     p_proc_ready = proc_table;
-
+    init_tasks();
     init_clock();
     init_keyboard();
 
@@ -92,9 +98,9 @@ PUBLIC int kernel_main() {
 void ReaderA() {
     while (True) {
         // printf("A is reading\n");
-        READER('A');
+        READER('A', 2);
         // printf("finish read A\n");
-        milli_delay(20000);
+        milli_delay(10000);
         // sleep(2000);
     }
 }
@@ -102,8 +108,8 @@ void ReaderA() {
 void ReaderB() {
     while (True) {
         // printf("B is reading\n");
-        READER('B');
-        milli_delay(30000);
+        READER('B', 3);
+        milli_delay(10000);
         // sleep(3000);
     }
 }
@@ -111,8 +117,8 @@ void ReaderB() {
 void ReaderC() {
     while (True) {
         // printf("C was reading\n");
-        READER('C');
-        milli_delay(30000);
+        READER('C', 3);
+        milli_delay(10000);
         // sleep(3000);
     }
 }
@@ -120,8 +126,8 @@ void ReaderC() {
 void WriterD() {
     while (True) {
         // printf("D is writing\n");
-        WRITER('D');
-        milli_delay(30000);
+        WRITER('D', 3);
+        milli_delay(10000);
         // sleep(3000);
     }
 }
@@ -129,20 +135,21 @@ void WriterD() {
 void WriterE() {
     while (True) {
         // printf("E is writing\n");
-        WRITER('E');
-        milli_delay(40000);
+        WRITER('E', 4);
+        milli_delay(10000);
         // sleep(4000);
     }
 }
 
 void NormalF() {
     while (True) {
-        // if (writeblock.value == 1) {
-        //     printf("%x Process Is Reading\n", readerCount);
-        // } else {
-        //     printf("Is Writing\n");
-        // }
-        milli_delay(10000);
-        // sleep(1000);
+        if (readerCount > 0) {
+            if(READER_FIRST) printf("%x Process Is Reading\n", trueReaderCount);
+            else printf("%x Process Is Reading\n", readerCount);
+        } else {
+            printf("Is Writing\n");
+        }
+        // milli_delay(10000);
+        sleep(1 * 1000);
     }
 }

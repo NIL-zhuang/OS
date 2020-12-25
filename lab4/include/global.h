@@ -35,7 +35,14 @@ extern TTY tty_table[];
 extern CONSOLE console_table[];
 
 EXTERN int readerCount;
+EXTERN int writerCount;
+EXTERN int trueReaderCount;    // real reader when reading, for reader first
 EXTERN SEMAPHORE writeblock;
 EXTERN SEMAPHORE readerLimit;  // 限制同时读同一本书的人数
-EXTERN SEMAPHORE mutex_count;  // protect readercount mutex
+EXTERN SEMAPHORE mutex_readerCount;  // protect reader count mutex
+EXTERN SEMAPHORE mutex_writerCount;
+
+EXTERN SEMAPHORE mutex_reader;  // protect writer count mutex, can't write together
+EXTERN SEMAPHORE write_first;        // use this to block read procs
+EXTERN SEMAPHORE mutex_fair_read; // read and write should be fair
 // EXTERN SEMAPHORE mutex_isReading;  // protect isReading
